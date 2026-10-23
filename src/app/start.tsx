@@ -8,11 +8,22 @@ export default function Start() {
   const insets = useSafeAreaInsets();
 
   const handleBack = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/onboarding");
+    }
   };
 
   return (
-    <View className="flex-1 justify-between px-10 py-20">
+    <View
+      className="flex-1 justify-between"
+      style={{
+        paddingVertical: insets.bottom + 24,
+        paddingHorizontal: insets.left + 20,
+        paddingTop: insets.top + 20,
+      }}
+    >
       {/* Top Section: Back Button + Title & Subtitle */}
       <View className="gap-12">
         {/* Back Button (Figma: left: 24px, top: 57px, 24x24) */}

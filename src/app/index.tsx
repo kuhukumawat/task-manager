@@ -8,23 +8,34 @@ export default function Index() {
   const router = useRouter();
 
   useEffect(() => {
+    let isMounted = true;
     const timer = setTimeout(async () => {
       try {
         const data = await AsyncStorage.getItem("user");
         if (data) {
           const user = JSON.parse(data);
-          if (user.isLoggedIn) {
-            router.replace("/home");
+          if (user && user.isLoggedIn) {
+            if (isMounted) router.replace("/home");
             return;
           }
+        }
+        const hasSeenOnboarding = await AsyncStorage.getItem("hasSeenOnboarding");
+        if (hasSeenOnboarding === "true") {
+          if (isMounted) router.replace("/start");
+          return;
         }
       } catch (error) {
         console.log("Error checking user session:", error);
       }
-      router.replace("/onboarding");
-    }, 3000);
+      if (isMounted) {
+        router.replace("/onboarding");
+      }
+    }, 1500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [router]);
 
   return (

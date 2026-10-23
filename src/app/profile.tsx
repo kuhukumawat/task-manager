@@ -114,6 +114,7 @@ export default function Profile() {
           email: "user@example.com",
           password: "password123",
         }),
+        isLoggedIn: user?.isLoggedIn ?? true,
         name: newName.trim(),
         identifier: newName.trim(),
       };
@@ -151,6 +152,7 @@ export default function Profile() {
           identifier: "Martha Hays",
           email: "user@example.com",
         }),
+        isLoggedIn: user?.isLoggedIn ?? true,
         password: newPassword.trim(),
       };
       await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
@@ -174,6 +176,7 @@ export default function Profile() {
           email: "user@example.com",
           password: "password123",
         }),
+        isLoggedIn: user?.isLoggedIn ?? true,
         avatarUri,
       };
       await AsyncStorage.setItem("user", JSON.stringify(updatedUser));

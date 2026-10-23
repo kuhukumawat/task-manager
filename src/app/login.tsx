@@ -14,8 +14,10 @@ import {
   ToastAndroid,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function Login() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -23,7 +25,11 @@ export default function Login() {
   const [isUsernameFocused, setIsUsernameFocused] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const handleBack = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/start");
+    }
   };
   const handleTouchOut = () => {
     Keyboard.dismiss();
@@ -49,7 +55,10 @@ export default function Login() {
       if (!data) {
         setErrorMessage("User not found. Please register first.");
         if (Platform.OS === "android") {
-          ToastAndroid.show("User not found. Please register first.", ToastAndroid.SHORT);
+          ToastAndroid.show(
+            "User not found. Please register first.",
+            ToastAndroid.SHORT,
+          );
         }
         return;
       }
@@ -64,7 +73,10 @@ export default function Login() {
       if (!isIdentifierMatch) {
         setErrorMessage("User not found with this username or email");
         if (Platform.OS === "android") {
-          ToastAndroid.show("User not found with this username or email", ToastAndroid.SHORT);
+          ToastAndroid.show(
+            "User not found with this username or email",
+            ToastAndroid.SHORT,
+          );
         }
         return;
       }
@@ -72,7 +84,10 @@ export default function Login() {
       if (!isPasswordMatch) {
         setErrorMessage("Incorrect password. Please try again.");
         if (Platform.OS === "android") {
-          ToastAndroid.show("Incorrect password. Please try again.", ToastAndroid.SHORT);
+          ToastAndroid.show(
+            "Incorrect password. Please try again.",
+            ToastAndroid.SHORT,
+          );
         }
         return;
       }
@@ -82,7 +97,8 @@ export default function Login() {
         "user",
         JSON.stringify({ ...user, isLoggedIn: true }),
       );
-      router.push("/fingerprint");
+      await AsyncStorage.setItem("hasSeenOnboarding", "true");
+      router.replace("/home");
     } catch (error) {
       console.log("Login error:", error);
       setErrorMessage("An error occurred during login. Please try again.");
@@ -91,24 +107,25 @@ export default function Login() {
       }
     }
   };
-  const check = async () => {
-    try {
-      const data = await AsyncStorage.getItem("user");
-      if (data) {
-        const user: User = JSON.parse(data);
-        if (user.isLoggedIn) {
-          router.replace("/home");
-        }
-      }
-    } catch (error) {
-      console.log("Check error:", error);
-    }
-  };
   useEffect(() => {
+    const check = async () => {
+      try {
+        const data = await AsyncStorage.getItem("user");
+        if (data) {
+          const user: User = JSON.parse(data);
+          if (user.isLoggedIn) {
+            router.replace("/home");
+          }
+        }
+      } catch (error) {
+        console.log("Check error:", error);
+      }
+    };
     check();
-  }, []);
+  }, [router]);
 
-  const isFormValid = identifier.trim().length > 0 && password.trim().length > 0;
+  const isFormValid =
+    identifier.trim().length > 0 && password.trim().length > 0;
 
   const isIdentifierError =
     Boolean(errorMessage) &&
@@ -125,7 +142,12 @@ export default function Login() {
 
   return (
     <Pressable
-      className="flex-1  justify-between px-10 py-20"
+      className="flex-1  justify-between "
+      style={{
+        paddingTop: insets.top + 20,
+        paddingBottom: insets.bottom + 20,
+        paddingHorizontal: insets.left + 20,
+      }}
       onPress={handleTouchOut}
     >
       <View className="gap-12">
@@ -158,8 +180,13 @@ export default function Login() {
                 if (errorMessage) setErrorMessage("");
               }}
               onFocus={() => setIsUsernameFocused(true)}
+              onBlur={() => setIsUsernameFocused(false)}
               className={`h-[48px] w-full bg-[#1D1D1D] rounded-[6px] px-[12px] text-white border-[1px] text-base font-normal ${
-                isIdentifierError ? "border-[#FF4949]" : "border-[#979797]"
+                isIdentifierError
+                  ? "border-[#FF4949]"
+                  : isUsernameFocused
+                  ? "border-white"
+                  : "border-[#979797]"
               }`}
             />
             <Text className="text-base font-normal text-[#FFFFFFDE]">
@@ -176,8 +203,13 @@ export default function Login() {
                   if (errorMessage) setErrorMessage("");
                 }}
                 onFocus={() => setIsPasswordFocused(true)}
+                onBlur={() => setIsPasswordFocused(false)}
                 className={`h-[48px] w-full bg-[#1D1D1D] rounded-[6px] px-[12px] pr-[45px] text-white border-[1px] text-base ${
-                  isPasswordError ? "border-[#FF4949]" : "border-[#979797]"
+                  isPasswordError
+                    ? "border-[#FF4949]"
+                    : isPasswordFocused
+                    ? "border-white"
+                    : "border-[#979797]"
                 }`}
               />
 

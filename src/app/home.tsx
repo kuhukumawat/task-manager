@@ -817,77 +817,57 @@ export default function Home() {
             </View>
 
             {/* Filter select row */}
-            <View className="mt-5 flex-row items-center justify-between">
-              <View className="self-start">
-                <Pressable
-                  onPress={() => setIsSelectOpen((prev) => !prev)}
-                  className="h-[31px] flex-row items-center gap-[10px] rounded-[6px] bg-white/20 px-[10px] py-[5px] active:opacity-70"
-                >
-                  <Text className="text-xs font-normal text-white/90">
-                    {selectedFilter}
-                  </Text>
-                  <Ionicons
-                    name={isSelectOpen ? "chevron-up" : "chevron-down"}
-                    size={14}
-                    color="rgba(255, 255, 255, 0.87)"
-                  />
-                </Pressable>
+            <View className="mt-5 self-start">
+              <Pressable
+                onPress={() => setIsSelectOpen((prev) => !prev)}
+                className="h-[31px] flex-row items-center gap-[10px] rounded-[6px] bg-white/20 px-[10px] py-[5px] active:opacity-70"
+              >
+                <Text className="text-xs font-normal text-white/90">
+                  {selectedFilter}
+                </Text>
+                <Ionicons
+                  name={isSelectOpen ? "chevron-up" : "chevron-down"}
+                  size={14}
+                  color="rgba(255, 255, 255, 0.87)"
+                />
+              </Pressable>
 
-                {isSelectOpen && (
-                  <View className="mt-1 min-w-[130px] rounded-[6px] border border-[#979797]/30 bg-[#363636] p-1.5 z-20">
-                    {FILTER_OPTIONS.map((option) => {
-                      const isSelected = selectedFilter === option;
-                      return (
-                        <Pressable
-                          key={option}
-                          onPress={() => {
-                            setSelectedFilter(option);
-                            setIsSelectOpen(false);
-                          }}
-                          className={`flex-row items-center justify-between rounded px-3 py-2 ${
-                            isSelected ? "button/25" : "active:bg-white/10"
+              {isSelectOpen && (
+                <View className="mt-1 min-w-[130px] rounded-[6px] border border-[#979797]/30 bg-[#363636] p-1.5 z-20">
+                  {FILTER_OPTIONS.map((option) => {
+                    const isSelected = selectedFilter === option;
+                    return (
+                      <Pressable
+                        key={option}
+                        onPress={() => {
+                          setSelectedFilter(option);
+                          setIsSelectOpen(false);
+                        }}
+                        className={`flex-row items-center justify-between rounded px-3 py-2 ${
+                          isSelected ? "button/25" : "active:bg-white/10"
+                        }`}
+                      >
+                        <Text
+                          className={`text-xs ${
+                            isSelected
+                              ? "font-semibold text-[#8687E7]"
+                              : "text-white/90"
                           }`}
                         >
-                          <Text
-                            className={`text-xs ${
-                              isSelected
-                                ? "font-semibold text-[#8687E7]"
-                                : "text-white/90"
-                            }`}
-                          >
-                            {option}
-                          </Text>
-                          {isSelected && (
-                            <Ionicons
-                              name="checkmark"
-                              size={14}
-                              color="#8687E7"
-                            />
-                          )}
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-
-              {/* Quick Filter & Sort Button Trigger */}
-              <Pressable
-                onPress={handleOpenFilterModal}
-                className="flex-row items-center gap-1.5 rounded-[6px] bg-white/10 px-2.5 py-1.5 active:opacity-70"
-              >
-                <Ionicons
-                  name={hasActiveFilters ? "filter" : "filter-outline"}
-                  size={14}
-                  color={hasActiveFilters ? themeColor : "white"}
-                />
-                <Text
-                  style={hasActiveFilters ? { color: themeColor } : undefined}
-                  className="text-xs font-medium text-white/90"
-                >
-                  {t("filter_and_sort", "Filter & Sort")}
-                </Text>
-              </Pressable>
+                          {option}
+                        </Text>
+                        {isSelected && (
+                          <Ionicons
+                            name="checkmark"
+                            size={14}
+                            color="#8687E7"
+                          />
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
             </View>
 
             {/* Active Filter Chips */}

@@ -1,198 +1,590 @@
 import Google from "@/assets/google.svg";
 import Selection from "@/components/selection";
+import { useSettings } from "@/context/SettingsContext";
 import { User } from "@/types/interface";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Keyboard, Pressable, Text, TextInput, View } from "react-native";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  ToastAndroid,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 export default function Register() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { themeColor, fontScale } = useSettings();
+
   const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isUsernameFocused, setIsUsernameFocused] = useState(false);
-  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [email, setEmail] = useState("");
-  const [isEmailFocused, setIsEmailFocused] = useState(false);
+  const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] =
-    useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [focusedField, setFocusedField] = useState<
+    "identifier" | "email" | "password" | "confirmPassword" | null
+  >(null);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const handleBack = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/start");
+    }
   };
-  const handleTouchOut = () => {
-    Keyboard.dismiss();
-    setIsUsernameFocused(false);
-    setIsPasswordFocused(false);
-    setIsEmailFocused(false);
-    setIsConfirmPasswordFocused(false);
-  };
+
   const handleRegister = async () => {
+    Keyboard.dismiss();
+    setErrorMessage("");
+
+    const trimmedUsername = identifier.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+    const trimmedConfirmPassword = confirmPassword.trim();
+
     if (
-      !identifier.trim() ||
-      !password.trim() ||
-      !email.trim() ||
-      !confirmPassword.trim()
+      !trimmedUsername ||
+      !trimmedEmail ||
+      !trimmedPassword ||
+      !trimmedConfirmPassword
     ) {
+      const msg = "Please fill in all fields.";
+      setErrorMessage(msg);
+      if (Platform.OS === "android") {
+        ToastAndroid.show(msg, ToastAndroid.SHORT);
+      }
       return;
     }
-    if (password !== confirmPassword) {
-      return;
-    }
-    const data = await AsyncStorage.getItem("user");
-    let user: User;
 
-    if (data) {
-      user = JSON.parse(data);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      const msg = "Please enter a valid email address.";
+      setErrorMessage(msg);
+      if (Platform.OS === "android") {
+        ToastAndroid.show(msg, ToastAndroid.SHORT);
+      }
+      return;
     }
-    const newUser = { identifier, password, email, isLoggedIn: false };
-    user = newUser;
-    AsyncStorage.setItem("user", JSON.stringify(user));
-    router.push("/fingerprint");
+
+    if (trimmedPassword.length < 6) {
+      const msg = "Password must be at least 6 characters.";
+      setErrorMessage(msg);
+      if (Platform.OS === "android") {
+        ToastAndroid.show(msg, ToastAndroid.SHORT);
+      }
+      return;
+    }
+
+    if (trimmedPassword !== trimmedConfirmPassword) {
+      const msg = "Passwords do not match.";
+      setErrorMessage(msg);
+      if (Platform.OS === "android") {
+        ToastAndroid.show(msg, ToastAndroid.SHORT);
+      }
+      return;
+    }
+
+    try {
+      const newUser: User = {
+        identifier: trimmedUsername,
+        email: trimmedEmail,
+        password: trimmedPassword,
+        isLoggedIn: true,
+      };
+      await AsyncStorage.setItem("user", JSON.stringify(newUser));
+      await AsyncStorage.setItem("hasSeenOnboarding", "true");
+      router.replace("/home");
+    } catch (e) {
+      console.log("Error saving user:", e);
+      setErrorMessage("Could not save account. Please try again.");
+    }
   };
-  return (
-    <Pressable
-      className="flex-1  justify-between px-10 py-20"
-      onPress={handleTouchOut}
-    >
-      <View className="gap-6">
-        <View className="h-10 justify-center">
-          <Pressable
-            onPress={handleBack}
-            hitSlop={12}
-            className="w-10 h-10 justify-center items-start active:opacity-60"
-          >
-            <Ionicons name="chevron-back" size={28} color="white" />
-          </Pressable>
-        </View>
 
-        <View className=" gap-6">
-          <Text className="text-[32px] leading-[38px] font-bold text-start max-w-[288px] text-[#FFFFFFDE]">
+  const isFormValid =
+    identifier.trim().length > 0 &&
+    email.trim().length > 0 &&
+    password.trim().length > 0 &&
+    confirmPassword.trim().length > 0;
+
+  const isUsernameError =
+    Boolean(errorMessage) &&
+    (!identifier.trim() || errorMessage.includes("all"));
+
+  const isEmailError =
+    Boolean(errorMessage) &&
+    (!email.trim() ||
+      errorMessage.includes("email") ||
+      errorMessage.includes("all"));
+
+  const isPasswordError =
+    Boolean(errorMessage) &&
+    (!password.trim() ||
+      errorMessage.includes("Password") ||
+      errorMessage.includes("match") ||
+      errorMessage.includes("all"));
+
+  const isConfirmPasswordError =
+    Boolean(errorMessage) &&
+    (!confirmPassword.trim() ||
+      errorMessage.includes("match") ||
+      errorMessage.includes("all"));
+
+  const getBorderColor = (
+    field: "identifier" | "email" | "password" | "confirmPassword",
+    hasError: boolean,
+  ) => {
+    if (hasError) return "#FF4949";
+    if (focusedField === field) return "#FFFFFF";
+    return "#979797";
+  };
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={{ flex: 1, backgroundColor: "#121212" }}
+    >
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "space-between",
+          paddingTop: Math.max(insets.top, 16) + 12,
+          paddingBottom: Math.max(insets.bottom, 16) + 16,
+          paddingHorizontal: 24,
+        }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Top Form Section */}
+        <View>
+          {/* Back Button */}
+          <View style={{ height: 40, justifyContent: "center" }}>
+            <Pressable
+              onPress={handleBack}
+              hitSlop={12}
+              style={{
+                width: 40,
+                height: 40,
+                justifyContent: "center",
+                alignItems: "flex-start",
+              }}
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="chevron-back" size={28} color="white" />
+            </Pressable>
+          </View>
+
+          {/* Title */}
+          <Text
+            style={{
+              fontSize: Math.round(32 * fontScale),
+              lineHeight: Math.round(38 * fontScale),
+              fontWeight: "700",
+              color: "rgba(255, 255, 255, 0.87)",
+              marginTop: 16,
+              marginBottom: 20,
+            }}
+          >
             Register
           </Text>
 
-          <View className="gap-3">
-            <Text className="text-base font-normal text-[#FFFFFFDE]">
-              Username
-            </Text>
-
-            <TextInput
-              placeholder="Enter your Username"
-              placeholderTextColor="#535353"
-              value={identifier}
-              onChangeText={setIdentifier}
-              onFocus={() => setIsUsernameFocused(true)}
-              className="h-[48px] w-full bg-[#1D1D1D] rounded-[6px] px-[12px] text-white border-[#979797] border-[1px] text-base font-normal"
-            />
-            <Text className="text-base font-normal text-[#FFFFFFDE]">
-              Email
-            </Text>
-            <View className="relative">
-              <TextInput
-                placeholder="Enter your Email"
-                placeholderTextColor="#535353"
-                value={email}
-                onChangeText={setEmail}
-                onFocus={() => setIsEmailFocused(true)}
-                className="h-[48px] w-full bg-[#1D1D1D] rounded-[6px] px-[12px] text-white border-[#979797] border-[1px] text-base font-normal"
-              />
+          {/* Form Fields */}
+          <View>
+            {/* Username Field */}
+            <View style={{ marginBottom: 16 }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "rgba(255, 255, 255, 0.87)",
+                  marginBottom: 8,
+                }}
+              >
+                Username
+              </Text>
+              <View
+                style={{
+                  height: 48,
+                  backgroundColor: "#1D1D1D",
+                  borderRadius: 4,
+                  borderWidth: 1,
+                  borderColor: getBorderColor("identifier", isUsernameError),
+                  paddingHorizontal: 12,
+                  justifyContent: "center",
+                }}
+              >
+                <TextInput
+                  placeholder="Enter your Username"
+                  placeholderTextColor="#535353"
+                  value={identifier}
+                  onChangeText={(text) => {
+                    setIdentifier(text);
+                    if (errorMessage) setErrorMessage("");
+                  }}
+                  onFocus={() => setFocusedField("identifier")}
+                  onBlur={() => setFocusedField(null)}
+                  autoCapitalize="none"
+                  style={{
+                    color: "#FFFFFF",
+                    fontSize: 16,
+                    height: "100%",
+                    paddingVertical: 0,
+                  }}
+                />
+              </View>
             </View>
-            <Text className="text-base font-normal text-[#FFFFFFDE]">
-              Password
-            </Text>
-            <View className="relative">
-              <TextInput
-                placeholder="••••••••"
-                placeholderTextColor="#535353"
-                secureTextEntry={showPassword}
-                value={password}
-                onChangeText={setPassword}
-                onFocus={() => setIsPasswordFocused(true)}
-                className="h-[48px] w-full bg-[#1D1D1D] rounded-[6px] px-[12px] pr-[45px]  text-white border-[#979797] border-[1px] text-base"
-              />
 
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-[14px] z-20"
+            {/* Email Field */}
+            <View style={{ marginBottom: 16 }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "rgba(255, 255, 255, 0.87)",
+                  marginBottom: 8,
+                }}
+              >
+                Email
+              </Text>
+              <View
+                style={{
+                  height: 48,
+                  backgroundColor: "#1D1D1D",
+                  borderRadius: 4,
+                  borderWidth: 1,
+                  borderColor: getBorderColor("email", isEmailError),
+                  paddingHorizontal: 12,
+                  justifyContent: "center",
+                }}
+              >
+                <TextInput
+                  placeholder="Enter your Email"
+                  placeholderTextColor="#535353"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (errorMessage) setErrorMessage("");
+                  }}
+                  onFocus={() => setFocusedField("email")}
+                  onBlur={() => setFocusedField(null)}
+                  style={{
+                    color: "#FFFFFF",
+                    fontSize: 16,
+                    height: "100%",
+                    paddingVertical: 0,
+                  }}
+                />
+              </View>
+            </View>
+
+            {/* Password Field */}
+            <View style={{ marginBottom: 16 }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "rgba(255, 255, 255, 0.87)",
+                  marginBottom: 8,
+                }}
+              >
+                Password
+              </Text>
+              <View
+                style={{
+                  height: 48,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#1D1D1D",
+                  borderRadius: 4,
+                  borderWidth: 1,
+                  borderColor: getBorderColor("password", isPasswordError),
+                  paddingHorizontal: 12,
+                }}
+              >
+                <TextInput
+                  placeholder="••••••••"
+                  placeholderTextColor="#535353"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (errorMessage) setErrorMessage("");
+                  }}
+                  onFocus={() => setFocusedField("password")}
+                  onBlur={() => setFocusedField(null)}
+                  style={{
+                    flex: 1,
+                    color: "#FFFFFF",
+                    fontSize: 16,
+                    height: "100%",
+                    paddingVertical: 0,
+                  }}
+                />
+                <Pressable
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  hitSlop={12}
+                  style={{
+                    height: 48,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    paddingLeft: 8,
+                  }}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye" : "eye-off"}
+                    size={20}
+                    color="white"
+                  />
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Confirm Password Field */}
+            <View style={{ marginBottom: 16 }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "rgba(255, 255, 255, 0.87)",
+                  marginBottom: 8,
+                }}
+              >
+                Confirm Password
+              </Text>
+              <View
+                style={{
+                  height: 48,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#1D1D1D",
+                  borderRadius: 4,
+                  borderWidth: 1,
+                  borderColor: getBorderColor(
+                    "confirmPassword",
+                    isConfirmPasswordError,
+                  ),
+                  paddingHorizontal: 12,
+                }}
+              >
+                <TextInput
+                  placeholder="••••••••"
+                  placeholderTextColor="#535353"
+                  secureTextEntry={!showConfirmPassword}
+                  value={confirmPassword}
+                  onChangeText={(text) => {
+                    setConfirmPassword(text);
+                    if (errorMessage) setErrorMessage("");
+                  }}
+                  onFocus={() => setFocusedField("confirmPassword")}
+                  onBlur={() => setFocusedField(null)}
+                  style={{
+                    flex: 1,
+                    color: "#FFFFFF",
+                    fontSize: 16,
+                    height: "100%",
+                    paddingVertical: 0,
+                  }}
+                />
+                <Pressable
+                  onPress={() => setShowConfirmPassword((prev) => !prev)}
+                  hitSlop={12}
+                  style={{
+                    height: 48,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    paddingLeft: 8,
+                  }}
+                >
+                  <Ionicons
+                    name={showConfirmPassword ? "eye" : "eye-off"}
+                    size={20}
+                    color="white"
+                  />
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Error Message Box */}
+            {errorMessage ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "rgba(255, 73, 73, 0.15)",
+                  borderColor: "rgba(255, 73, 73, 0.5)",
+                  borderWidth: 1,
+                  borderRadius: 6,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  marginBottom: 8,
+                }}
               >
                 <Ionicons
-                  name={showPassword ? "eye" : "eye-off"}
-                  size={20}
-                  color="white"
+                  name="alert-circle-outline"
+                  size={18}
+                  color="#FF4949"
+                  style={{ marginRight: 10 }}
                 />
-              </Pressable>
-            </View>
-            <Text className="text-base font-normal text-[#FFFFFFDE]">
-              Confirm Password
-            </Text>
-            <View className="relative">
-              <TextInput
-                placeholder="••••••••"
-                placeholderTextColor="#535353"
-                secureTextEntry={true}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                onFocus={() => setIsConfirmPasswordFocused(true)}
-                className="h-[48px] w-full bg-[#1D1D1D] rounded-[6px] px-[12px] pr-[45px]  text-white border-[#979797] border-[1px] text-base"
-              />
-
-              <Pressable
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-4 top-[14px] z-20"
-              >
-                <Ionicons
-                  name={showConfirmPassword ? "eye" : "eye-off"}
-                  size={20}
-                  color="white"
-                />
-              </Pressable>
-            </View>
+                <Text
+                  style={{
+                    color: "#FF4949",
+                    fontSize: 12,
+                    fontWeight: "500",
+                    flex: 1,
+                  }}
+                >
+                  {errorMessage}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
-      </View>
 
-      <View className="gap-6">
-        <Pressable
-          disabled={!identifier && !password}
-          onPress={() => handleRegister()}
-          className={`w-full h-[48px] rounded-[4px] items-center justify-center active:opacity-80 ${
-            identifier && password ? "button" : "button/50"
-          }`}
-        >
-          <Text className="text-base leading-[24px]  text-white font-normal">
-            REGISTER
-          </Text>
-        </Pressable>
-        <Selection />
+        {/* Bottom Actions Section */}
+        <View style={{ marginTop: 20 }}>
+          {/* REGISTER Button */}
+          <Pressable
+            disabled={!isFormValid}
+            onPress={handleRegister}
+            style={{
+              height: 48,
+              borderRadius: 4,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: isFormValid ? themeColor : "#8687E7",
+              opacity: isFormValid ? 1 : 0.5,
+              marginBottom: 16,
+            }}
+          >
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 16,
+                fontWeight: "400",
+                lineHeight: 24,
+              }}
+            >
+              REGISTER
+            </Text>
+          </Pressable>
 
-        <Pressable className="w-full h-[48px] flex-row items-center gap-2 bg-transparent border-[1px] border-[#8E7CFF] rounded-[4px] items-center justify-center active:opacity-80">
-          <Google />
-          <Text className="text-base leading-[24px]  text-white font-normal">
-            Register with Google
-          </Text>
-        </Pressable>
-        <Pressable className="w-full h-[48px] bg-transparent border-[1px] border-[#8E7CFF] rounded-[4px] items-center justify-center active:opacity-80">
-          <View className="flex-row items-center justify-center gap-2">
-            <View className="w-8 h-8 rounded-full bg-[#283544] flex items-center justify-center">
+          {/* Selection (or divider) */}
+          <View style={{ marginBottom: 16 }}>
+            <Selection />
+          </View>
+
+          {/* Register with Google */}
+          <Pressable
+            style={{
+              height: 48,
+              borderRadius: 4,
+              borderWidth: 1,
+              borderColor: "#8E7CFF",
+              backgroundColor: "transparent",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 16,
+            }}
+          >
+            <View style={{ marginRight: 8 }}>
+              <Google />
+            </View>
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 16,
+                fontWeight: "400",
+                lineHeight: 24,
+              }}
+            >
+              Register with Google
+            </Text>
+          </Pressable>
+
+          {/* Register with Apple */}
+          <Pressable
+            style={{
+              height: 48,
+              borderRadius: 4,
+              borderWidth: 1,
+              borderColor: "#8E7CFF",
+              backgroundColor: "transparent",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 20,
+            }}
+          >
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: "#283544",
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 8,
+              }}
+            >
               <Ionicons name="logo-apple" size={16} color="white" />
             </View>
-            <Text className="text-base leading-[24px]  text-white font-normal">
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 16,
+                fontWeight: "400",
+                lineHeight: 24,
+              }}
+            >
               Register with Apple
             </Text>
-          </View>
-        </Pressable>
-
-        <View className="w-full flex-row items-center justify-center gap-2">
-          <Text className="text-xs  text-[#979797] font-normal">
-            Already have an account?
-          </Text>
-          <Pressable onPress={() => router.push("/login")}>
-            <Text className="text-xs  text-white font-normal">Login</Text>
           </Pressable>
+
+          {/* Already have an account? Login */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              style={{
+                color: "#979797",
+                fontSize: 12,
+                fontWeight: "400",
+                marginRight: 8,
+              }}
+            >
+              Already have an account?
+            </Text>
+            <Pressable
+              onPress={() => router.push("/login")}
+              hitSlop={8}
+            >
+              <Text
+                style={{
+                  color: "#FFFFFF",
+                  fontSize: 12,
+                  fontWeight: "600",
+                }}
+              >
+                Login
+              </Text>
+            </Pressable>
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as LocalAuthentication from "expo-local-authentication";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
@@ -8,17 +9,21 @@ export default function Fingerprint() {
   useEffect(() => {
     const authenticate = async () => {
       try {
+        const data = await AsyncStorage.getItem("user");
+        const user = data ? JSON.parse(data) : null;
+        const isLoggedIn = Boolean(user && user.isLoggedIn);
+
         const hasHardware = await LocalAuthentication.hasHardwareAsync();
 
         if (!hasHardware) {
-          router.replace("/home");
+          router.replace(isLoggedIn ? "/home" : "/login");
           return;
         }
 
         const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
         if (!isEnrolled) {
-          router.replace("/home");
+          router.replace(isLoggedIn ? "/home" : "/login");
           return;
         }
 
@@ -32,12 +37,11 @@ export default function Fingerprint() {
           router.replace("/home");
         } else {
           console.log("Authentication failed or cancelled");
-          router.replace("/login");
+          router.replace(isLoggedIn ? "/home" : "/login");
         }
       } catch (error) {
         console.log("Biometric error:", error);
-
-        router.replace("/login");
+        router.replace("/home");
       }
     };
 

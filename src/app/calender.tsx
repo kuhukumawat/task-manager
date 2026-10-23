@@ -15,60 +15,6 @@ interface DayItem {
   dateKey: string;
 }
 
-const DEFAULT_CALENDAR_TASKS: Task[] = [
-  {
-    id: "cal-1",
-    title: "Do Math Homework",
-    description: "",
-    time: "Today At 16:45",
-    date: new Date().toISOString().split("T")[0],
-    category: {
-      id: "1",
-      name: "University",
-      icon: "school-outline",
-      bg: "#809CFF",
-      background: "#809CFF",
-      iconColor: "#0055A3",
-    },
-    priority: 1,
-    completed: false,
-  },
-  {
-    id: "cal-2",
-    title: "Tack out dogs",
-    description: "",
-    time: "Today At 18:20",
-    date: new Date().toISOString().split("T")[0],
-    category: {
-      id: "2",
-      name: "Home",
-      icon: "home-outline",
-      bg: "#FF8080",
-      background: "#FF8080",
-      iconColor: "#A30000",
-    },
-    priority: 2,
-    completed: false,
-  },
-  {
-    id: "cal-3",
-    title: "Business meeting with CEO",
-    description: "",
-    time: "Today At 08:15",
-    date: new Date().toISOString().split("T")[0],
-    category: {
-      id: "3",
-      name: "Work",
-      icon: "briefcase-outline",
-      bg: "#FFCC80",
-      background: "#FFCC80",
-      iconColor: "#A36200",
-    },
-    priority: 3,
-    completed: false,
-  },
-];
-
 const MONTH_NAMES = [
   "JANUARY",
   "FEBRUARY",
@@ -109,20 +55,35 @@ export default function Calender() {
           return;
         }
       }
-      // If no tasks exist yet, seed with Figma default tasks
-      setTasks(DEFAULT_CALENDAR_TASKS);
-      await AsyncStorage.setItem(
-        "tasks",
-        JSON.stringify(DEFAULT_CALENDAR_TASKS),
-      );
+      setTasks([]);
+      await AsyncStorage.setItem("tasks", JSON.stringify([]));
     } catch (e) {
       console.log("Error loading tasks for calendar:", e);
-      setTasks(DEFAULT_CALENDAR_TASKS);
+      setTasks([]);
     }
   };
 
   useEffect(() => {
-    loadTasks();
+    let isMounted = true;
+    AsyncStorage.getItem("tasks")
+      .then((stored) => {
+        if (!isMounted) return;
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTasks(parsed);
+            return;
+          }
+        }
+        setTasks([]);
+      })
+      .catch((e) => {
+        console.log("Error loading tasks for calendar:", e);
+        if (isMounted) setTasks([]);
+      });
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Generate days for the viewed month
@@ -217,9 +178,6 @@ export default function Calender() {
   };
 
   // Filter tasks based on activeTab (Today / Completed)
-  const isSelectedDateToday =
-    selectedDate.toDateString() === new Date().toDateString();
-
   const filteredTasks = tasks.filter((t) => {
     const matchesTab = activeTab === "Today" ? !t.completed : t.completed;
 

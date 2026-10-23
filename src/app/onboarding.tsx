@@ -5,6 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { FC, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SvgProps } from "react-native-svg";
 
 interface OnboardingSlide {
@@ -48,14 +49,20 @@ const SLIDES: OnboardingSlide[] = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const isFirstSlide = currentIndex === 0;
   const isLastSlide = currentIndex === SLIDES.length - 1;
   const currentSlide = SLIDES[currentIndex];
-  const handleNext = () => {
+  const handleNext = async () => {
     if (isLastSlide) {
-      router.push("/start");
+      try {
+        await AsyncStorage.setItem("hasSeenOnboarding", "true");
+      } catch (e) {
+        console.log("Error storing hasSeenOnboarding:", e);
+      }
+      router.replace("/start");
     } else {
       setCurrentIndex((prev) => prev + 1);
     }
@@ -67,34 +74,38 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleSkip = () => {
-    router.push("/start");
-  };
-  const check = async () => {
+  const handleSkip = async () => {
     try {
-      const data = await AsyncStorage.getItem("user");
-      if (data) {
-        const user = JSON.parse(data);
-        if (user && user.isLoggedIn) {
-          router.replace("/home");
-        } else {
-          router.push("/onboarding");
-        }
-      }
-    } catch (error) {
-      console.log("Error checking user session in onboarding:", error);
+      await AsyncStorage.setItem("hasSeenOnboarding", "true");
+    } catch (e) {
+      console.log("Error storing hasSeenOnboarding:", e);
     }
+    router.replace("/start");
   };
   useEffect(() => {
+    const check = async () => {
+      try {
+        const data = await AsyncStorage.getItem("user");
+        if (data) {
+          const user = JSON.parse(data);
+          if (user && user.isLoggedIn) {
+            router.replace("/home");
+          }
+        }
+      } catch (error) {
+        console.log("Error checking user session in onboarding:", error);
+      }
+    };
     check();
-  }, []);
+  }, [router]);
   return (
     <View
-      className="flex-1  justify-between py-20 px-10"
-      // style={{
-      //     paddingTop: Math.max(insets.top, 16),
-      //     paddingBottom: Math.max(insets.bottom, 24),
-      // }}
+      className="flex-1  justify-between"
+      style={{
+        paddingVertical: insets.bottom + 24,
+        paddingHorizontal: insets.left + 20,
+        paddingTop: insets.top + 20,
+      }}
     >
       {/* Top Header: SKIP button */}
       <View className="h-10 flex-row items-center justify-between">
