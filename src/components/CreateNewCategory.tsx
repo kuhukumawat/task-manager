@@ -1,4 +1,6 @@
+import { Categories } from "@/types/interface";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState } from "react";
 import {
   Modal,
@@ -6,10 +8,10 @@ import {
   ScrollView,
   Text,
   TextInput,
+  ToastAndroid,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 export type NewCategoryData = {
   id: string;
   name: string;
@@ -26,22 +28,22 @@ type CreateNewCategoryProps = {
 
 // Figma Color Palette
 const PALETTE_COLORS = [
-  "#C9CC41",
-  "#66CC41",
-  "#41CCA7",
-  "#4181CC",
-  "#41A2CC",
-  "#CC8441",
-  "#FF8080",
-  "#FF80EB",
-  "#FC80FF",
-  "#80FFA3",
-  "#80FFD1",
-  "#80D1FF",
+  "#6B6D1A", // olive
+  "#2F7A1A", // green
+  "#1A7A63", // teal
+  "#1A4A80", // deep blue
+  "#1A5F7A", // dark cyan
+  "#8A4A14", // brown-orange
+  "#9B2F2F", // dark red
+  "#9B2F85", // dark pink
+  "#7A1F80", // dark magenta
+  "#1F7A3A", // forest green
+  "#1F7A64", // dark mint
+  "#1F5F8A", // steel blue
 ];
 
 // Icons for category selection
-const AVAILABLE_ICONS: Array<keyof typeof Ionicons.glyphMap> = [
+const AVAILABLE_ICONS: (keyof typeof Ionicons.glyphMap)[] = [
   "restaurant-outline",
   "briefcase-outline",
   "football-outline",
@@ -81,11 +83,30 @@ export default function CreateNewCategory({
   const [selectedColor, setSelectedColor] = useState(PALETTE_COLORS[0]);
   const [showIconPicker, setShowIconPicker] = useState(false);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!categoryName.trim()) return;
+    const cate = await AsyncStorage.getItem("categories");
+    const newCate: Categories[] = cate ? JSON.parse(cate) : [];
+    const matchedCate = newCate.filter(
+      (i) => i.name.toLowerCase() === categoryName.trim().toLowerCase(),
+    );
+    if (matchedCate.length > 0) {
+      ToastAndroid.show("Category already exists", ToastAndroid.SHORT);
+      return;
+    }
+    const Id =
+      categoryName.toLowerCase().replace(/\s+/g, "-") + new Date().getTime();
+    newCate.push({
+      id: Id,
+      name: categoryName.trim(),
+      icon: selectedIcon,
+      background: selectedColor,
+      iconColor: "#FFFFFF",
+    });
 
+    await AsyncStorage.setItem("categories", JSON.stringify(newCate));
     onCreate?.({
-      id: categoryName.toLowerCase().replace(/\s+/g, "-"),
+      id: Id,
       name: categoryName.trim(),
       icon: selectedIcon,
       background: selectedColor,
@@ -138,7 +159,7 @@ export default function CreateNewCategory({
             <Text className="text-base text-white/90">Category icon :</Text>
 
             <View className="mt-4 flex-row items-center gap-3">
-              {!selectedIcon && (
+              {selectedIcon && (
                 <Pressable
                   onPress={() => setShowIconPicker(true)}
                   className="flex-row items-center rounded-md bg-white/20 px-4 py-2 active:opacity-70"
@@ -207,7 +228,7 @@ export default function CreateNewCategory({
           <Pressable
             onPress={handleCreate}
             disabled={!categoryName.trim()}
-            className={`h-12 flex-1 items-center justify-center rounded bg-[#8687E7] active:opacity-80 ${
+            className={`h-12 flex-1 items-center justify-center rounded button active:opacity-80 ${
               !categoryName.trim() ? "opacity-50" : ""
             }`}
           >
@@ -244,7 +265,7 @@ export default function CreateNewCategory({
                         setShowIconPicker(false);
                       }}
                       className={`h-12 w-12 items-center justify-center rounded-[4px] ${
-                        isSelected ? "bg-[#8687E7]" : "bg-[#272727]"
+                        isSelected ? "button" : "bg-[#272727]"
                       }`}
                     >
                       <Ionicons

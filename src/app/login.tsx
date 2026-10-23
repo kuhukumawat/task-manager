@@ -1,13 +1,24 @@
 import Google from "@/assets/google.svg";
 import Selection from "@/components/selection";
+import { User } from "@/types/interface";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Keyboard, Pressable, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  Keyboard,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  ToastAndroid,
+  View,
+} from "react-native";
 export default function Login() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isUsernameFocused, setIsUsernameFocused] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
@@ -19,6 +30,99 @@ export default function Login() {
     setIsUsernameFocused(false);
     setIsPasswordFocused(false);
   };
+  const handleLogin = async () => {
+    if (!identifier.trim() && !password.trim()) {
+      setErrorMessage("Please enter your username/email and password");
+      return;
+    }
+    if (!identifier.trim()) {
+      setErrorMessage("Please enter your username or email");
+      return;
+    }
+    if (!password.trim()) {
+      setErrorMessage("Please enter your password");
+      return;
+    }
+
+    try {
+      const data = await AsyncStorage.getItem("user");
+      if (!data) {
+        setErrorMessage("User not found. Please register first.");
+        if (Platform.OS === "android") {
+          ToastAndroid.show("User not found. Please register first.", ToastAndroid.SHORT);
+        }
+        return;
+      }
+
+      const user: User = JSON.parse(data);
+      const trimmedIdentifier = identifier.trim().toLowerCase();
+      const isIdentifierMatch =
+        user.identifier?.trim().toLowerCase() === trimmedIdentifier ||
+        user.email?.trim().toLowerCase() === trimmedIdentifier;
+      const isPasswordMatch = user.password === password;
+
+      if (!isIdentifierMatch) {
+        setErrorMessage("User not found with this username or email");
+        if (Platform.OS === "android") {
+          ToastAndroid.show("User not found with this username or email", ToastAndroid.SHORT);
+        }
+        return;
+      }
+
+      if (!isPasswordMatch) {
+        setErrorMessage("Incorrect password. Please try again.");
+        if (Platform.OS === "android") {
+          ToastAndroid.show("Incorrect password. Please try again.", ToastAndroid.SHORT);
+        }
+        return;
+      }
+
+      setErrorMessage("");
+      await AsyncStorage.setItem(
+        "user",
+        JSON.stringify({ ...user, isLoggedIn: true }),
+      );
+      router.push("/fingerprint");
+    } catch (error) {
+      console.log("Login error:", error);
+      setErrorMessage("An error occurred during login. Please try again.");
+      if (Platform.OS === "android") {
+        ToastAndroid.show("Login error", ToastAndroid.SHORT);
+      }
+    }
+  };
+  const check = async () => {
+    try {
+      const data = await AsyncStorage.getItem("user");
+      if (data) {
+        const user: User = JSON.parse(data);
+        if (user.isLoggedIn) {
+          router.replace("/home");
+        }
+      }
+    } catch (error) {
+      console.log("Check error:", error);
+    }
+  };
+  useEffect(() => {
+    check();
+  }, []);
+
+  const isFormValid = identifier.trim().length > 0 && password.trim().length > 0;
+
+  const isIdentifierError =
+    Boolean(errorMessage) &&
+    (!identifier.trim() ||
+      errorMessage.includes("username") ||
+      errorMessage.includes("User not found") ||
+      errorMessage.includes("all"));
+
+  const isPasswordError =
+    Boolean(errorMessage) &&
+    (!password.trim() ||
+      errorMessage.includes("password") ||
+      errorMessage.includes("all"));
+
   return (
     <Pressable
       className="flex-1  justify-between px-10 py-20"
@@ -49,9 +153,14 @@ export default function Login() {
               placeholder="Enter your Username/Email"
               placeholderTextColor="#535353"
               value={identifier}
-              onChangeText={setIdentifier}
+              onChangeText={(text) => {
+                setIdentifier(text);
+                if (errorMessage) setErrorMessage("");
+              }}
               onFocus={() => setIsUsernameFocused(true)}
-              className="h-[48px] w-full bg-[#1D1D1D] rounded-[6px] px-[12px] text-white border-[#979797] border-[1px] text-base font-normal"
+              className={`h-[48px] w-full bg-[#1D1D1D] rounded-[6px] px-[12px] text-white border-[1px] text-base font-normal ${
+                isIdentifierError ? "border-[#FF4949]" : "border-[#979797]"
+              }`}
             />
             <Text className="text-base font-normal text-[#FFFFFFDE]">
               Password
@@ -60,11 +169,16 @@ export default function Login() {
               <TextInput
                 placeholder="••••••••"
                 placeholderTextColor="#535353"
-                secureTextEntry={showPassword}
+                secureTextEntry={!showPassword}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (errorMessage) setErrorMessage("");
+                }}
                 onFocus={() => setIsPasswordFocused(true)}
-                className="h-[48px] w-full bg-[#1D1D1D] rounded-[6px] px-[12px] pr-[45px]  text-white border-[#979797] border-[1px] text-base"
+                className={`h-[48px] w-full bg-[#1D1D1D] rounded-[6px] px-[12px] pr-[45px] text-white border-[1px] text-base ${
+                  isPasswordError ? "border-[#FF4949]" : "border-[#979797]"
+                }`}
               />
 
               <Pressable
@@ -78,22 +192,35 @@ export default function Login() {
                 />
               </Pressable>
             </View>
+
+            {errorMessage ? (
+              <View className="bg-[#FF4949]/15 border border-[#FF4949]/50 rounded-[6px] px-3.5 py-2.5 flex-row items-center gap-2.5 mt-1">
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={18}
+                  color="#FF4949"
+                />
+                <Text className="text-[#FF4949] text-xs font-medium flex-1">
+                  {errorMessage}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
       </View>
 
       <View className="gap-[28px]">
         <Pressable
-          disabled={!identifier && !password}
-          onPress={() => router.push("/fingerprint")}
+          onPress={handleLogin}
           className={`w-full h-[48px] rounded-[4px] items-center justify-center active:opacity-80 ${
-            identifier && password ? "button" : "bg-[#8687E7]/50"
+            isFormValid ? "button" : "button/60"
           }`}
         >
           <Text className="text-base leading-[24px]  text-white font-normal">
             LOGIN
           </Text>
         </Pressable>
+
         <Selection />
 
         <Pressable className="w-full h-[48px] flex-row items-center gap-2 bg-transparent border-[1px] border-[#8E7CFF] rounded-[4px] items-center justify-center active:opacity-80">

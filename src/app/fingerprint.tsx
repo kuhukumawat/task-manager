@@ -32,6 +32,7 @@ export default function Fingerprint() {
           router.replace("/home");
         } else {
           console.log("Authentication failed or cancelled");
+          router.replace("/login");
         }
       } catch (error) {
         console.log("Biometric error:", error);

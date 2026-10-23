@@ -1,4 +1,5 @@
 import AppTabs from "@/components/app-tabs";
+import { SettingsProvider } from "@/context/SettingsContext";
 import "@/global.css";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -13,7 +14,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <SettingsProvider>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -31,6 +32,7 @@ export default function RootLayout() {
         <Stack.Screen name="calender" />
         <Stack.Screen name="focus" />
         <Stack.Screen name="profile" />
+        <Stack.Screen name="settings" />
         <Stack.Screen
           name="fingerprint"
           options={{
@@ -42,6 +44,6 @@ export default function RootLayout() {
       </Stack>
 
       <AppTabs />
-    </>
+    </SettingsProvider>
   );
 }

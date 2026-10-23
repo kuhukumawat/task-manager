@@ -1,4 +1,5 @@
 import Logo from "@/assets/uptodo.svg";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Text, View } from "react-native";
@@ -6,9 +7,20 @@ import { Text, View } from "react-native";
 export default function Index() {
   const router = useRouter();
 
-
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const data = await AsyncStorage.getItem("user");
+        if (data) {
+          const user = JSON.parse(data);
+          if (user.isLoggedIn) {
+            router.replace("/home");
+            return;
+          }
+        }
+      } catch (error) {
+        console.log("Error checking user session:", error);
+      }
       router.replace("/onboarding");
     }, 3000);
 

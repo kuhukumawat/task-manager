@@ -1,6 +1,8 @@
 import Google from "@/assets/google.svg";
 import Selection from "@/components/selection";
+import { User } from "@/types/interface";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Keyboard, Pressable, Text, TextInput, View } from "react-native";
@@ -26,6 +28,29 @@ export default function Register() {
     setIsPasswordFocused(false);
     setIsEmailFocused(false);
     setIsConfirmPasswordFocused(false);
+  };
+  const handleRegister = async () => {
+    if (
+      !identifier.trim() ||
+      !password.trim() ||
+      !email.trim() ||
+      !confirmPassword.trim()
+    ) {
+      return;
+    }
+    if (password !== confirmPassword) {
+      return;
+    }
+    const data = await AsyncStorage.getItem("user");
+    let user: User;
+
+    if (data) {
+      user = JSON.parse(data);
+    }
+    const newUser = { identifier, password, email, isLoggedIn: false };
+    user = newUser;
+    AsyncStorage.setItem("user", JSON.stringify(user));
+    router.push("/fingerprint");
   };
   return (
     <Pressable
@@ -131,9 +156,9 @@ export default function Register() {
       <View className="gap-6">
         <Pressable
           disabled={!identifier && !password}
-          onPress={() => router.push("/fingerprint")}
+          onPress={() => handleRegister()}
           className={`w-full h-[48px] rounded-[4px] items-center justify-center active:opacity-80 ${
-            identifier && password ? "button" : "bg-[#8687E7]/50"
+            identifier && password ? "button" : "button/50"
           }`}
         >
           <Text className="text-base leading-[24px]  text-white font-normal">

@@ -1,3 +1,4 @@
+import { useSettings } from "@/context/SettingsContext";
 import { usePathname, useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -135,6 +136,7 @@ export default function AppTabs() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { themeColor, fontScale, t } = useSettings();
 
   const [isModalVisible, setModalVisible] = useState(false);
 
@@ -146,6 +148,7 @@ export default function AppTabs() {
     "/login",
     "/register",
     "/fingerprint",
+    "/settings",
   ];
 
   if (hiddenRoutes.includes(pathname)) {
@@ -216,12 +219,12 @@ export default function AppTabs() {
             <Text
               style={{
                 marginTop: 2,
-                fontSize: 12,
-                lineHeight: 18,
+                fontSize: Math.round(12 * fontScale),
+                lineHeight: Math.round(18 * fontScale),
                 color: isHomeActive ? activeColor : inactiveColor,
               }}
             >
-              Index
+              {t("tab_index", "Index")}
             </Text>
           </Pressable>
 
@@ -241,12 +244,12 @@ export default function AppTabs() {
             <Text
               style={{
                 marginTop: 2,
-                fontSize: 12,
-                lineHeight: 18,
+                fontSize: Math.round(12 * fontScale),
+                lineHeight: Math.round(18 * fontScale),
                 color: isCalendarActive ? activeColor : inactiveColor,
               }}
             >
-              Calendar
+              {t("tab_calendar", "Calendar")}
             </Text>
           </Pressable>
 
@@ -263,7 +266,7 @@ export default function AppTabs() {
                 width: 64,
                 height: 64,
                 borderRadius: 32,
-                backgroundColor: "#8687E7",
+                backgroundColor: themeColor,
                 marginTop: -58,
                 alignItems: "center",
                 justifyContent: "center",
@@ -298,12 +301,12 @@ export default function AppTabs() {
             <Text
               style={{
                 marginTop: 2,
-                fontSize: 12,
-                lineHeight: 18,
+                fontSize: Math.round(12 * fontScale),
+                lineHeight: Math.round(18 * fontScale),
                 color: isFocusActive ? activeColor : inactiveColor,
               }}
             >
-              Focuse
+              {t("tab_focus", "Focus")}
             </Text>
           </Pressable>
 
@@ -323,12 +326,12 @@ export default function AppTabs() {
             <Text
               style={{
                 marginTop: 2,
-                fontSize: 12,
-                lineHeight: 18,
+                fontSize: Math.round(12 * fontScale),
+                lineHeight: Math.round(18 * fontScale),
                 color: isProfileActive ? activeColor : inactiveColor,
               }}
             >
-              Profile
+              {t("tab_profile", "Profile")}
             </Text>
           </Pressable>
         </View>

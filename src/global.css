@@ -2,7 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+* {
+  --color-button: #8687E7;
+}
+
 :root {
+  --color-button: #8687E7;
   --font-display:
     'Lato', Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif;
   --font-mono:
@@ -17,7 +22,7 @@ body {
 
 .button {
   cursor: pointer;
-  background-color: #8875FF !important;
+  background-color: var(--color-button, #8687E7) !important;
   color: #fff !important;
   border-radius: 5px !important;
 }

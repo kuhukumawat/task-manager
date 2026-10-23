@@ -6,6 +6,9 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
+      colors: {
+        button: "var(--color-button, #8687E7)",
+      },
       fontFamily: {
         sans: ['Lato', 'sans-serif'],
         lato: ['Lato', 'sans-serif'],
@@ -13,5 +16,4 @@ module.exports = {
     },
   },
   plugins: [],
-
 };

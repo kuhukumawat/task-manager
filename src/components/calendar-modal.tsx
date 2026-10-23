@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
 import ChooseTimeModal from "./ChooseTimeModal";
@@ -9,6 +9,8 @@ type CalendarModalProps = {
   selectedDate?: string;
   onSelectDate?: (date: string) => void;
   onSelectTime?: (time: string) => void;
+  editId?: string;
+  initialTime?: string;
 };
 
 const isValidDate = (val?: string): boolean => {
@@ -22,25 +24,19 @@ export default function CalendarModal({
   selectedDate,
   onSelectDate,
   onSelectTime,
+  editId,
+  initialTime,
 }: CalendarModalProps) {
   const today = new Date().toISOString().split("T")[0];
-  const initialDate = isValidDate(selectedDate) ? selectedDate! : today;
-
-  const [currentDate, setCurrentDate] = useState(initialDate);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [openTimeModal, setOpenTimeModal] = useState(false);
 
-  useEffect(() => {
-    if (isValidDate(selectedDate)) {
-      setCurrentDate(selectedDate!);
-    } else {
-      setCurrentDate(today);
-    }
-  }, [selectedDate, visible, today]);
-
-  const safeCurrentDate = isValidDate(currentDate) ? currentDate : today;
+  const activeDate =
+    selectedDay ?? (isValidDate(selectedDate) ? selectedDate! : today);
+  const safeCurrentDate = isValidDate(activeDate) ? activeDate : today;
 
   const handleDayPress = (day: DateData) => {
-    setCurrentDate(day.dateString);
+    setSelectedDay(day.dateString);
     if (onSelectDate) {
       onSelectDate(day.dateString);
     }
@@ -113,10 +109,10 @@ export default function CalendarModal({
             <Pressable
               onPress={handleOpenTimeModal}
               hitSlop={8}
-              className="rounded-lg bg-[#8687E7] px-4 py-2"
+              className="rounded-lg button px-4 py-2"
             >
               <Text className="text-sm font-medium text-white">
-                Choose Time
+                {editId ? "Edit Time" : "Choose Time"}
               </Text>
             </Pressable>
           </View>
@@ -127,6 +123,8 @@ export default function CalendarModal({
         visible={openTimeModal}
         onClose={handleCloseTimeModal}
         onSave={handleSaveTime}
+        editId={editId}
+        initialTime={initialTime}
       />
     </Modal>
   );

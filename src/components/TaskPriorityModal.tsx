@@ -5,7 +5,10 @@ import { Modal, Pressable, Text, View } from "react-native";
 type TaskPriorityModalProps = {
   visible: boolean;
   onClose: () => void;
-  onSave?: (priority: number) => void;
+  priority?: number;
+  setPriority?: (priority: number) => void;
+  editId?: string;
+  initialPriority?: number;
 };
 
 const PRIORITIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -13,12 +16,16 @@ const PRIORITIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 export default function TaskPriorityModal({
   visible,
   onClose,
-  onSave,
+  setPriority,
+  editId,
+  initialPriority,
 }: TaskPriorityModalProps) {
-  const [selectedPriority, setSelectedPriority] = useState(1);
+  const [selectedPriority, setSelectedPriority] = useState(
+    initialPriority ?? 1,
+  );
 
   const handleSave = () => {
-    onSave?.(selectedPriority);
+    setPriority?.(selectedPriority);
     onClose();
   };
 
@@ -51,7 +58,7 @@ export default function TaskPriorityModal({
                   key={priority}
                   onPress={() => setSelectedPriority(priority)}
                   className={` h-[64px] w-[64px] items-center justify-center rounded-[4px] ${
-                    isSelected ? "bg-[#8687E7]" : "bg-[#272727]"
+                    isSelected ? "button" : "bg-[#272727]"
                   }`}
                 >
                   {/* Flag */}
@@ -77,9 +84,9 @@ export default function TaskPriorityModal({
           {/* Save */}
           <Pressable
             onPress={handleSave}
-            className="absolute bottom-[6px] right-[28px] h-[48px] w-[126px] items-center justify-center rounded-[4px] bg-[#8687E7]"
+            className="absolute bottom-[6px] right-[28px] h-[48px] w-[126px] items-center justify-center rounded-[4px] button"
           >
-            <Text className="text-base text-white">Save</Text>
+            <Text className="text-base text-white">{`${editId ? "Edit" : "Save"}`}</Text>
           </Pressable>
         </View>
       </View>

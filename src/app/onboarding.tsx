@@ -1,10 +1,10 @@
 import create from "@/assets/create.svg";
 import manage from "@/assets/manage.svg";
 import organize from "@/assets/organise.svg";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SvgProps } from "react-native-svg";
 
 interface OnboardingSlide {
@@ -48,13 +48,11 @@ const SLIDES: OnboardingSlide[] = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const isFirstSlide = currentIndex === 0;
   const isLastSlide = currentIndex === SLIDES.length - 1;
   const currentSlide = SLIDES[currentIndex];
-
   const handleNext = () => {
     if (isLastSlide) {
       router.push("/start");
@@ -72,7 +70,24 @@ export default function OnboardingScreen() {
   const handleSkip = () => {
     router.push("/start");
   };
-
+  const check = async () => {
+    try {
+      const data = await AsyncStorage.getItem("user");
+      if (data) {
+        const user = JSON.parse(data);
+        if (user && user.isLoggedIn) {
+          router.replace("/home");
+        } else {
+          router.push("/onboarding");
+        }
+      }
+    } catch (error) {
+      console.log("Error checking user session in onboarding:", error);
+    }
+  };
+  useEffect(() => {
+    check();
+  }, []);
   return (
     <View
       className="flex-1  justify-between py-20 px-10"

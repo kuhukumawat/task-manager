@@ -1,6 +1,8 @@
+import { Categories } from "@/types/interface";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { Modal, Pressable, Text, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
+import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import CreateNewCategory, { NewCategoryData } from "./CreateNewCategory";
 
 type Category = {
@@ -11,99 +13,43 @@ type Category = {
   iconColor: string;
 };
 
-const CATEGORIES: Category[] = [
-  {
-    id: "grocery",
-    name: "Grocery",
-    icon: "restaurant-outline",
-    background: "#CCFF80",
-    iconColor: "#21A300",
-  },
-  {
-    id: "work",
-    name: "Work",
-    icon: "briefcase-outline",
-    background: "#FF9680",
-    iconColor: "#A31D00",
-  },
-  {
-    id: "sport",
-    name: "Sport",
-    icon: "football-outline",
-    background: "#80FFFF",
-    iconColor: "#00A32F",
-  },
-  {
-    id: "design",
-    name: "Design",
-    icon: "color-palette-outline",
-    background: "#80FFD9",
-    iconColor: "#00A372",
-  },
-  {
-    id: "university",
-    name: "University",
-    icon: "school-outline",
-    background: "#809CFF",
-    iconColor: "#0055A3",
-  },
-  {
-    id: "social",
-    name: "Social",
-    icon: "megaphone-outline",
-    background: "#FF80EB",
-    iconColor: "#A30089",
-  },
-  {
-    id: "music",
-    name: "Music",
-    icon: "musical-notes-outline",
-    background: "#FC80FF",
-    iconColor: "#A000A3",
-  },
-  {
-    id: "health",
-    name: "Health",
-    icon: "heart-outline",
-    background: "#80FFA3",
-    iconColor: "#00A3A3",
-  },
-
-  {
-    id: "movie",
-    name: "Movie",
-    icon: "videocam-outline",
-    background: "#80D1FF",
-    iconColor: "#0069A3",
-  },
-  {
-    id: "home",
-    name: "Home",
-    icon: "home-outline",
-    background: "#FF8080",
-    iconColor: "#A30000",
-  },
-];
-
 type CategoryModalProps = {
   visible: boolean;
   onClose: () => void;
-  onSelect?: (category: string) => void;
+  category?: Categories;
+  setCategory?: (category: Categories) => void;
+  editId?: string;
+  initialCategory?: Category;
 };
 
 export default function CategoryModal({
   visible,
   onClose,
-  onSelect,
+  category,
+  setCategory,
+  editId,
+  initialCategory,
 }: CategoryModalProps) {
-  const [categoriesList, setCategoriesList] = useState<Category[]>(CATEGORIES);
+  const [categoriesList, setCategoriesList] = useState<Categories[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-
-  const handleSelect = (category: Category | NewCategoryData) => {
-    setSelectedCategory(category.id);
-    onSelect?.(category.name);
+  const [cat, setCat] = useState(initialCategory);
+  const handleSelect = (cat: Category | NewCategoryData) => {
+    setSelectedCategory(cat.id);
+    // setCategory?.(cat as Categories);
+    setCategory?.(cat as Categories);
+    setCat(cat as Categories);
   };
+  const loadCategories = async () => {
+    const existing = await AsyncStorage.getItem("categories");
+    const categories = existing ? JSON.parse(existing) : [];
+    setCategoriesList(categories);
+    console.log(categories);
+  };
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
 
   return (
     <Modal
@@ -113,88 +59,105 @@ export default function CategoryModal({
       onRequestClose={onClose}
     >
       {/* Dark overlay */}
-      <View className="flex-1 items-center justify-center bg-black/70">
+      <Pressable
+        className="flex-1 items-center justify-center absolute inset-0 bg-black/60"
+        onPress={() => onClose()}
+      >
         {/* Category Box */}
-        <View className="h-[556px] w-[327px] rounded-[4px] bg-[#363636] flex gap-6 py-6 px-5 overflow-auto">
+
+        <Pressable
+          className="h-[556px] w-[327px] rounded-[4px] bg-[#363636] flex gap-6 py-6 px-4 overflow-hidden"
+          onPress={(e) => e.stopPropagation()}
+        >
           {/* Title */}
-          <Text className=" text-center text-base font-bold text-white/90">
-            Choose Category
+          <Text className="text-center text-base font-bold text-white/90">
+            {editId ? "Edit Category" : "Choose Category"}
           </Text>
 
           {/* Divider */}
           <View className="h-[1px] bg-[#979797]" />
 
           {/* Categories */}
-          <View className="flex-row flex-wrap gap-x-12 gap-y-3">
-            {categoriesList.map((category) => {
-              const isSelected = selectedCategory === category.id;
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            className="flex-1"
+            contentContainerStyle={{ paddingBottom: 60 }}
+          >
+            <View className="flex-row flex-wrap">
+              {categoriesList.map((category) => {
+                const isSelected = cat?.id === category.id;
 
-              return (
+                return (
+                  <View key={category.id} className="w-1/3 items-center mb-4">
+                    <Pressable
+                      onPress={() => handleSelect(category)}
+                      className="items-center"
+                    >
+                      {/* Category icon box */}
+                      <View
+                        className={`h-[64px] w-[64px] items-center justify-center rounded-[4px] ${
+                          isSelected ? "border-2 border-white" : ""
+                        }`}
+                        style={{
+                          backgroundColor: category.background,
+                        }}
+                      >
+                        <Ionicons
+                          name={category.icon}
+                          size={32}
+                          color={category.iconColor}
+                        />
+                      </View>
+
+                      {/* Category name */}
+                      <Text
+                        numberOfLines={1}
+                        className="mt-[5px] w-[80px] text-center text-sm font-medium text-white/90"
+                      >
+                        {category.name}
+                      </Text>
+                    </Pressable>
+                  </View>
+                );
+              })}
+
+              {/* Create New */}
+              <View className="w-1/3 items-center mb-4">
                 <Pressable
-                  key={category.id}
-                  onPress={() => handleSelect(category)}
-                  className=" h-[90px] w-[64px] items-center"
+                  onPress={() => setShowCreateModal(true)}
+                  className="items-center active:opacity-70"
                 >
-                  {/* Category icon box */}
-                  <View
-                    className={`h-[64px] w-[64px] items-center justify-center rounded-[4px] ${
-                      isSelected ? "border-2 border-white" : ""
-                    }`}
-                    style={{
-                      backgroundColor: category.background,
-                    }}
-                  >
-                    <Ionicons
-                      name={category.icon}
-                      size={32}
-                      color={category.iconColor}
-                    />
+                  <View className="h-[64px] w-[64px] items-center justify-center rounded-[4px] bg-[#80FFD1]">
+                    <Ionicons name="add" size={32} color="#00A369" />
                   </View>
 
-                  {/* Category name */}
                   <Text
                     numberOfLines={1}
-                    className="mt-[5px] text-center text-sm font-medium text-white/90"
+                    className="mt-[5px] w-[80px] text-center text-sm font-medium text-white/90"
                   >
-                    {category.name}
+                    Create
                   </Text>
                 </Pressable>
-              );
-            })}
-
-            {/* Create New */}
-            <Pressable
-              onPress={() => setShowCreateModal(true)}
-              className="mb-[16px] mr-[49px] h-[90px] w-[64px] items-center active:opacity-70"
-            >
-              <View className="h-[64px] w-[64px] items-center justify-center rounded-[4px] bg-[#80FFD1]">
-                <Ionicons name="add" size={32} color="#00A369" />
               </View>
-
-              <Text
-                numberOfLines={1}
-                className="mt-[5px] text-center text-sm font-medium text-white/90 w-full"
-              >
-                Create
-              </Text>
-            </Pressable>
-          </View>
+            </View>
+          </ScrollView>
 
           {/* Add Category */}
           <Pressable
             onPress={onClose}
-            className="absolute bottom-[11px] left-[19px] h-[48px] w-[289px] items-center justify-center rounded-[4px] bg-[#8687E7] active:opacity-80"
+            className="absolute bottom-[11px] left-[19px] h-[48px] w-[289px] items-center justify-center rounded-[4px] button active:opacity-80"
           >
-            <Text className="text-base text-white">Add Category</Text>
+            <Text className="text-base text-white">
+              {editId ? "Edit Category" : "Add Category"}
+            </Text>
           </Pressable>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
 
       <CreateNewCategory
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreate={(newCat) => {
-          setCategoriesList((prev) => [...prev, newCat]);
           handleSelect(newCat);
           setShowCreateModal(false);
         }}
