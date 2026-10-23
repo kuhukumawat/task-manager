@@ -31,12 +31,9 @@ export default function CategoryModal({
   initialCategory,
 }: CategoryModalProps) {
   const [categoriesList, setCategoriesList] = useState<Categories[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [cat, setCat] = useState(initialCategory);
   const handleSelect = (cat: Category | NewCategoryData) => {
-    setSelectedCategory(cat.id);
-    // setCategory?.(cat as Categories);
     setCategory?.(cat as Categories);
     setCat(cat as Categories);
   };
@@ -44,11 +41,20 @@ export default function CategoryModal({
     const existing = await AsyncStorage.getItem("categories");
     const categories = existing ? JSON.parse(existing) : [];
     setCategoriesList(categories);
-    console.log(categories);
   };
 
   useEffect(() => {
-    loadCategories();
+    let isMounted = true;
+    AsyncStorage.getItem("categories")
+      .then((existing) => {
+        if (!isMounted) return;
+        const categories = existing ? JSON.parse(existing) : [];
+        setCategoriesList(categories);
+      })
+      .catch((e) => console.log("Error loading categories:", e));
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -159,6 +165,7 @@ export default function CategoryModal({
         onClose={() => setShowCreateModal(false)}
         onCreate={(newCat) => {
           handleSelect(newCat);
+          loadCategories();
           setShowCreateModal(false);
         }}
       />

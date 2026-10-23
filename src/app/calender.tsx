@@ -3,7 +3,7 @@ import { useSettings } from "@/context/SettingsContext";
 import { Task } from "@/types/interface";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -110,9 +110,9 @@ export default function Calender() {
     return days;
   };
 
-  const daysList = getDaysInMonth(
-    currentMonth.getFullYear(),
-    currentMonth.getMonth(),
+  const daysList = useMemo(
+    () => getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth()),
+    [currentMonth],
   );
 
   // Scroll to selected date when days list updates
@@ -131,7 +131,7 @@ export default function Calender() {
         });
       }, 150);
     }
-  }, [currentMonth, selectedDate]);
+  }, [daysList, selectedDate]);
 
   const handlePrevMonth = () => {
     setCurrentMonth(
@@ -348,10 +348,13 @@ export default function Calender() {
           {/* Today Button (Frame 194) */}
           <Pressable
             onPress={() => setActiveTab("Today")}
+            style={{
+              backgroundColor: activeTab === "Today" ? themeColor : "transparent",
+            }}
             className={`flex-1 h-[49px] rounded-[4px] items-center justify-center mr-2 active:opacity-80 ${
               activeTab === "Today"
-                ? "button"
-                : "bg-transparent border-[2px] border-[#979797]"
+                ? ""
+                : "border-[2px] border-[#979797]"
             }`}
           >
             <Text
@@ -370,10 +373,13 @@ export default function Calender() {
           {/* Completed Button (Frame 195) */}
           <Pressable
             onPress={() => setActiveTab("Completed")}
+            style={{
+              backgroundColor: activeTab === "Completed" ? themeColor : "transparent",
+            }}
             className={`flex-1 h-[49px] rounded-[4px] items-center justify-center ml-2 active:opacity-80 ${
               activeTab === "Completed"
-                ? "button"
-                : "bg-transparent border-[2px] border-[#979797]"
+                ? ""
+                : "border-[2px] border-[#979797]"
             }`}
           >
             <Text

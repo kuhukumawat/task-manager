@@ -78,11 +78,12 @@ export default function ChooseTimeModal({
     if (!visible) return;
 
     const parsed = parseTime(initialTime);
-    setHour(parsed.hour);
-    setMinute(parsed.minute);
-    setPeriod(parsed.period);
 
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      setHour(parsed.hour);
+      setMinute(parsed.minute);
+      setPeriod(parsed.period);
+
       hourRef.current?.scrollToOffset({
         offset: (parsed.hour - 1) * ITEM_HEIGHT,
         animated: false,
@@ -92,10 +93,12 @@ export default function ChooseTimeModal({
         animated: false,
       });
       periodRef.current?.scrollToOffset({
-        offset: period === "AM" ? 0 : ITEM_HEIGHT,
+        offset: parsed.period === "AM" ? 0 : ITEM_HEIGHT,
         animated: false,
       });
     }, 80);
+
+    return () => clearTimeout(timer);
   }, [visible, initialTime]);
 
   const handleScrollEnd = (
